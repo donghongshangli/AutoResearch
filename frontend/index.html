@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoResearch</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; height: 100vh; display: flex; }
+  
+  /* ── 左侧栏 ── */
+  #sidebar { width: 280px; background: #16213e; display: flex; flex-direction: column; border-right: 1px solid #0f3460; }
+  #sidebar h2 { padding: 16px; font-size: 18px; color: #e94560; border-bottom: 1px solid #0f3460; }
+  
+  #projects-section { padding: 12px; border-bottom: 1px solid #0f3460; }
+  #projects-section label { font-size: 12px; color: #888; text-transform: uppercase; }
+  #project-new { display: flex; gap: 6px; margin-top: 6px; }
+  #project-new input { flex: 1; background: #0f3460; border: 1px solid #1a4a7a; color: #e0e0e0; padding: 6px 8px; border-radius: 4px; font-size: 13px; }
+  #project-new button { background: #e94560; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  #project-new button:hover { background: #ff6b81; }
+  #project-list { margin-top: 8px; max-height: 120px; overflow-y: auto; }
+  .proj-item { padding: 6px 8px; cursor: pointer; border-radius: 4px; font-size: 13px; display: flex; justify-content: space-between; }
+  .proj-item:hover { background: #0f3460; }
+  .proj-item.active { background: #e94560; }
+  .proj-item .del { color: #888; font-size: 11px; }
+  .proj-item .del:hover { color: #e94560; }
+  
+  #file-tree { flex: 1; overflow-y: auto; padding: 8px 12px; }
+  #file-tree h3 { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 6px; }
+  .tree-item { padding: 4px 8px; cursor: pointer; border-radius: 3px; font-size: 13px; font-family: 'Cascadia Code', monospace; }
+  .tree-item:hover { background: #0f3460; }
+  .tree-item.selected { background: #1a4a7a; }
+  .tree-item.dir { color: #a0c4ff; }
+  .tree-item.file { color: #bcd; }
+  
+  /* ── Git 历史 ── */
+  #history-section { border-top: 1px solid #0f3460; padding: 0 12px 8px; }
+  #history-header { padding: 8px 0; cursor: pointer; font-size: 12px; color: #888; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  #history-header:hover { color: #a0c4ff; }
+  #history-header .arrow { transition: transform 0.2s; font-size: 10px; }
+  #history-header.expanded .arrow { transform: rotate(90deg); }
+  #history-list { max-height: 200px; overflow-y: auto; display: none; }
+  #history-list.show { display: block; }
+  .hist-item { padding: 5px 8px; cursor: pointer; border-radius: 3px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .hist-item:hover { background: #0f3460; }
+  .hist-item.active { background: #1a4a7a; }
+  .hist-item .hist-date { color: #888; font-size: 10px; white-space: nowrap; }
+  .hist-item .hist-msg { color: #bcd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin: 0 8px; font-family: 'Segoe UI', system-ui, sans-serif; }
+  .hist-item .hist-hash { color: #555; font-size: 10px; font-family: 'Cascadia Code', monospace; }
+  
+  /* ── 主区域 ── */
+  #main { flex: 1; display: flex; flex-direction: column; }
+  
+  #toolbar { display: flex; gap: 8px; padding: 12px 16px; background: #16213e; border-bottom: 1px solid #0f3460; align-items: center; }
+  #toolbar button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-b { background: #3b82f6; color: #fff; }
+  .btn-b:hover { background: #60a5fa; }
+  .btn-c { background: #8b5cf6; color: #fff; }
+  .btn-c:hover { background: #a78bfa; }
+  .btn-d { background: #f59e0b; color: #111; }
+  .btn-d:hover { background: #fbbf24; }
+  .btn-compile { background: #10b981; color: #fff; }
+  .btn-compile:hover { background: #34d399; }
+  .btn-formula { background: #6366f1; color: #fff; }
+  .btn-formula:hover { background: #818cf8; }
+  
+  #toolbar input[type="text"] { flex: 1; background: #0f3460; border: 1px solid #1a4a7a; color: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-size: 13px; }
+  
+  #status { padding: 4px 16px; font-size: 12px; color: #666; }
+  
+  #editor-container { flex: 1; display: flex; }
+  
+  /* 编辑器 + 行号 */
+  #editor-wrapper { flex: 1; display: flex; overflow: hidden; position: relative; }
+  #line-numbers { width: 50px; background: #0d1b33; padding: 12px 8px; text-align: right; font-family: 'Cascadia Code', monospace; font-size: 13px; color: #4a5568; overflow: hidden; user-select: none; }
+  #line-numbers .ln { line-height: 1.6; cursor: pointer; }
+  #line-numbers .ln.highlight { background: #e9456040; color: #e94560; border-radius: 2px; }
+  #line-numbers .ln.selection-start { background: #f59e0b40; }
+  #line-numbers .ln.selection-end { background: #f59e0b40; }
+  
+  #editor { flex: 1; background: #0d1b33; color: #e0e0e0; border: none; padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 13px; line-height: 1.6; resize: none; outline: none; tab-size: 2; }
+  #editor:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  /* ── 右侧结果面板 ── */
+  #result-panel { width: 380px; background: #16213e; border-left: 1px solid #0f3460; display: flex; flex-direction: column; }
+  #result-panel h3 { padding: 12px 16px; font-size: 14px; color: #888; border-bottom: 1px solid #0f3460; }
+  #result-content { flex: 1; padding: 12px; overflow-y: auto; white-space: pre-wrap; font-family: 'Cascadia Code', monospace; font-size: 13px; }
+  
+  .diff-add { color: #34d399; }
+  .diff-remove { color: #f87171; }
+  .diff-header { color: #a78bfa; }
+  
+  #result-actions { padding: 12px; border-top: 1px solid #0f3460; border-bottom: 1px solid #0f3460; display: flex; gap: 8px; }
+  #result-actions button { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .btn-accept { background: #10b981; color: #fff; }
+  .btn-accept:hover { background: #34d399; }
+  .btn-reject { background: #374151; color: #888; }
+  .btn-reject:hover { background: #4b5563; }
+  
+  .empty-state { color: #555; font-style: italic; padding: 20px; text-align: center; }
+  .loading { color: #f59e0b; }
+  .error { color: #f87171; }
+  .ok { color: #34d399; }
+  
+  /* ── 公式识别模态 ── */
+  #formula-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000cc; z-index: 1000; justify-content: center; align-items: center; }
+  #formula-modal.show { display: flex; }
+  #formula-modal .modal-box { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; width: 700px; max-height: 80vh; display: flex; flex-direction: column; }
+  #formula-modal .modal-header { padding: 16px; border-bottom: 1px solid #0f3460; display: flex; justify-content: space-between; align-items: center; }
+  #formula-modal .modal-header h3 { color: #6366f1; font-size: 16px; }
+  #formula-modal .modal-close { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
+  #formula-modal .modal-close:hover { color: #e94560; }
+  #formula-modal .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+  
+  #formula-file-input { display: none; }
+  #formula-file-btn { background: #6366f1; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%; text-align: center; }
+  #formula-file-btn:hover { background: #818cf8; }
+  
+  #formula-loading { text-align: center; padding: 20px; color: #f59e0b; display: none; }
+  #formula-result { display: none; }
+  #formula-result .latex-box { background: #0d1b33; border: 1px solid #1a4a7a; border-radius: 4px; padding: 12px; font-family: 'Cascadia Code', monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; position: relative; }
+  #formula-result .copy-btn { position: absolute; top: 8px; right: 8px; background: #374151; color: #a0c4ff; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+  #formula-result .copy-btn:hover { background: #4b5563; }
+  #formula-result .copy-btn.copied { background: #10b981; color: #fff; }
+  #formula-result .pdf-preview { margin-top: 12px; border: 1px solid #1a4a7a; border-radius: 4px; background: #fff; height: 200px; }
+  #formula-result .pdf-preview iframe { width: 100%; height: 100%; border: none; }
+  #formula-error { color: #f87171; display: none; margin-top: 8px; font-size: 13px; white-space: pre-wrap; }
+  
+  /* ── 请求面板模态 ── */
+  #request-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000cc; z-index: 1001; justify-content: center; align-items: center; }
+  #request-modal.show { display: flex; }
+  #request-modal .modal-box { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; width: 520px; max-height: 85vh; display: flex; flex-direction: column; }
+  #request-modal .modal-header { padding: 14px 16px; border-bottom: 1px solid #0f3460; display: flex; justify-content: space-between; align-items: center; }
+  #request-modal .modal-header h3 { font-size: 16px; }
+  #request-modal .modal-close { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
+  #request-modal .modal-close:hover { color: #e94560; }
+  #request-modal .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+  #request-modal .modal-body label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; margin-top: 12px; text-transform: uppercase; }
+  #request-modal .modal-body label:first-child { margin-top: 0; }
+  #request-modal .modal-body input[type="text"],
+  #request-modal .modal-body input[type="number"],
+  #request-modal .modal-body textarea,
+  #request-modal .modal-body select { width: 100%; background: #0d1b33; border: 1px solid #1a4a7a; color: #e0e0e0; padding: 8px 10px; border-radius: 4px; font-size: 13px; font-family: inherit; }
+  #request-modal .modal-body textarea { resize: vertical; min-height: 50px; }
+  #request-modal .modal-body .sel-preview { background: #0d1b33; border: 1px solid #1a4a7a; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: #888; max-height: 80px; overflow-y: auto; white-space: pre-wrap; font-family: 'Cascadia Code', monospace; word-break: break-all; }
+  #request-modal .modal-body .scope-tabs { display: flex; gap: 0; margin-bottom: -1px; }
+  #request-modal .modal-body .scope-tab { padding: 6px 14px; background: #0d1b33; border: 1px solid #1a4a7a; color: #888; cursor: pointer; font-size: 12px; border-radius: 4px 4px 0 0; }
+  #request-modal .modal-body .scope-tab.active { background: #1a4a7a; color: #e0e0e0; border-bottom-color: #1a4a7a; }
+  #request-modal .modal-body .check-group { display: flex; gap: 12px; flex-wrap: wrap; }
+  #request-modal .modal-body .check-group label { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #bcd; text-transform: none; margin: 0; cursor: pointer; }
+  #request-modal .modal-body .check-group input[type="checkbox"] { width: auto; accent-color: #e94560; }
+  #request-modal .modal-footer { padding: 12px 16px; border-top: 1px solid #0f3460; display: flex; gap: 8px; justify-content: flex-end; }
+  #request-modal .modal-footer button { padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-submit { background: #e94560; color: #fff; }
+  .btn-submit:hover { background: #ff6b81; }
+  .btn-cancel { background: #374151; color: #888; }
+  .btn-cancel:hover { background: #4b5563; color: #e0e0e0; }
+  #request-modal .hint { font-size: 11px; color: #666; margin-top: 4px; }
+  
+  /* ── B 组模式选择模态 ── */
+  #mode-picker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000cc; z-index: 1002; justify-content: center; align-items: center; }
+  #mode-picker-modal.show { display: flex; }
+  #mode-picker-modal .modal-box { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; max-height: 85vh; }
+  #mode-picker-modal .modal-header { padding: 14px 16px; border-bottom: 1px solid #0f3460; display: flex; justify-content: space-between; align-items: center; }
+  #mode-picker-modal .modal-header h3 { font-size: 16px; }
+  #mode-picker-modal .modal-close { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
+  #mode-picker-modal .modal-close:hover { color: #e94560; }
+  #mode-picker-modal .modal-body { padding: 16px; }
+  #mode-picker-modal .modal-body button small { display: block; margin-top: 4px; }
+  .btn-danger { color: #fff; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-danger:hover { filter: brightness(1.3); }
+  .btn-primary { color: #fff; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-primary:hover { filter: brightness(1.3); }
+  
+  /* ── 进度条 ── */
+  #progress-wrap { display: none; padding: 12px 0; }
+  #progress-wrap.active { display: block; }
+  #progress-bar-outer { width: 100%; height: 6px; background: #0d1b33; border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+  #progress-bar-inner { height: 100%; background: linear-gradient(90deg, #3b82f6, #e94560); border-radius: 3px; transition: width 0.3s; width: 0; }
+  #progress-bar-inner.done { background: #10b981; }
+  #progress-bar-inner.error { background: #f87171; }
+  #progress-log { max-height: 200px; overflow-y: auto; font-size: 12px; font-family: 'Cascadia Code', monospace; }
+  .progress-log-item { padding: 2px 0; color: #888; }
+  .progress-log-item.active { color: #f59e0b; }
+  .progress-log-item.done { color: #34d399; }
+</style>
+</head>
+<body>
+
+<!-- ── 左侧栏 ── -->
+<div id="sidebar">
+  <h2>AutoResearch</h2>
+  
+  <div id="projects-section">
+    <label>论文项目</label>
+    <div id="project-new">
+      <input type="text" id="new-proj-name" placeholder="项目名…" />
+      <button onclick="createProject()">新建</button>
+    </div>
+    <div id="project-list"></div>
+  </div>
+  
+  <div id="file-tree">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">
+      <span>文件</span>
+      <button id="toggle-merged" onclick="toggleMergedView()" style="background:#0f3460;border:1px solid #1a4a7a;color:#a0c4ff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px" title="将多文件合并为单文档">📝 统一视图</button>
+    </h3>
+    <div id="tree-content" class="empty-state">请先选择项目</div>
+  </div>
+  
+  <div id="history-section">
+    <div id="history-header" onclick="toggleHistory()">
+      <span id="history-title">📜 历史</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<!-- ── 主区域 ── -->
+<div id="main">
+  <div id="toolbar">
+    <span style="font-size:12px;color:#888;margin-right:8px">行:</span>
+    <input type="number" id="line-start" placeholder="开始行" style="width:60px;background:#0f3460;border:1px solid #1a4a7a;color:#e0e0e0;padding:4px 6px;border-radius:4px;font-size:12px;" min="1" />
+    <span style="font-size:12px;color:#888">-</span>
+    <input type="number" id="line-end" placeholder="结束行" style="width:60px;background:#0f3460;border:1px solid #1a4a7a;color:#e0e0e0;padding:4px 6px;border-radius:4px;font-size:12px;" min="1" />
+    
+    <button class="btn-b" onclick="runGenerate()" title="B组: 生成初稿">🔮 B: 生成</button>
+    <button class="btn-c" onclick="runPolish()" title="C组: 润色选中段落">✨ C: 润色</button>
+    <button class="btn-d" onclick="runCheck()" title="D组: 语言检查">🔍 D: 检查</button>
+    <button class="btn-compile" onclick="runCompile()">📄 编译 PDF</button>
+    <button class="btn-formula" onclick="openFormulaModal()" title="手写公式识别">🧮 公式识别</button>
+    <button class="btn-c" onclick="runWorkflow()" title="E组: 工作流状态机" style="background:#ec4899;color:#fff">⚙️ E: 工作流</button>
+  </div>
+  
+  <div id="status">就绪 — 选择一个项目开始</div>
+  
+  <div id="editor-container">
+    <div id="editor-wrapper">
+      <div id="line-numbers"></div>
+      <textarea id="editor" disabled placeholder="选择一个 .tex 文件开始编辑…"></textarea>
+    </div>
+    
+    <div id="result-panel">
+      <h3 style="display:flex;justify-content:space-between">
+        <span>结果预览</span>
+        <button id="btn-abort" onclick="abortTask()" style="display:none;background:transparent;color:#f87171;border:1px solid #f87171;padding:3px 10px;border-radius:3px;cursor:pointer;font-size:11px">⏹ 中止</button>
+      </h3>
+      <div id="progress-wrap">
+        <div id="progress-bar-outer"><div id="progress-bar-inner"></div></div>
+        <div id="progress-log"></div>
+      </div>
+      <div id="result-actions" style="display:none">
+        <button class="btn-accept" onclick="applyEdit(true)">✅ 应用修改</button>
+        <button class="btn-reject" onclick="applyEdit(false)">❌ 丢弃</button>
+      </div>
+      <div id="result-content" class="empty-state">执行 B/C/D 操作后结果显示在这里</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 状态
+// ═══════════════════════════════════════════════════════════
+const API = 'http://localhost:8000/api';
+let state = {
+  projects: [],
+  activeProject: null,
+  activeFile: null,
+  fileContent: '',
+  lastResult: null,
+  viewMode: 'file',
+  mergedSegments: [],
+  sseSource: null,       // current EventSource
+};
+
+// ═══════════════════════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadProjects();
+  
+  // 编辑器行号同步
+  const editor = document.getElementById('editor');
+  editor.addEventListener('scroll', syncLineNumbers);
+  editor.addEventListener('input', updateLineNumbers);
+  editor.addEventListener('keydown', onEditorKeydown);
+  
+  // 行号点击选择
+  document.getElementById('line-numbers').addEventListener('click', onLineNumberClick);
+  
+  // 回车创建项目
+  document.getElementById('new-proj-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') createProject();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// 项目管理
+// ═══════════════════════════════════════════════════════════
+async function loadProjects() {
+  try {
+    const res = await fetch(`${API}/projects/`);
+    state.projects = await res.json();
+    renderProjectList();
+  } catch (e) {
+    setStatus('⚠ 无法连接后端 (http://localhost:8000)', true);
+  }
+}
+
+function renderProjectList() {
+  const list = document.getElementById('project-list');
+  if (!state.projects.length) {
+    list.innerHTML = '<div class="empty-state" style="font-size:12px">暂无项目</div>';
+    return;
+  }
+  list.innerHTML = state.projects.map(p =>
+    `<div class="proj-item${p.name === state.activeProject ? ' active' : ''}" 
+          onclick="selectProject('${p.name}')">
+       <span>📁 ${p.name}</span>
+       <span class="del" onclick="event.stopPropagation(); deleteProject('${p.name}')">×</span>
+     </div>`
+  ).join('');
+}
+
+async function createProject() {
+  const input = document.getElementById('new-proj-name');
+  const name = input.value.trim();
+  if (!name) return;
+  
+  try {
+    const res = await fetch(`${API}/projects/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.detail); }
+    input.value = '';
+    await loadProjects();
+    selectProject(name);
+  } catch (e) {
+    setStatus(`❌ 创建失败: ${e.message}`, true);
+  }
+}
+
+async function deleteProject(name) {
+  if (!confirm(`删除项目 "${name}"？`)) return;
+  await fetch(`${API}/projects/${name}`, { method: 'DELETE' });
+  if (state.activeProject === name) {
+    state.activeProject = null;
+    state.activeFile = null;
+    state.fileContent = '';
+    clearEditor();
+    document.getElementById('tree-content').innerHTML = '<div class="empty-state">请先选择项目</div>';
+  }
+  await loadProjects();
+}
+
+async function selectProject(name) {
+  state.activeProject = name;
+  state.activeFile = null;
+  state.fileContent = '';
+  state.viewMode = 'file';
+  state.mergedSegments = [];
+  clearEditor();
+  clearResult();
+  renderProjectList();
+  updateMergedButton();
+  await loadFileTree();
+  // 刷新历史计数
+  refreshHistoryCount();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 统一视图（多文件 → 单文档）
+// ═══════════════════════════════════════════════════════════
+async function toggleMergedView() {
+  if (!state.activeProject) {
+    setStatus('请先选择项目', true);
+    return;
+  }
+  
+  if (state.viewMode === 'merged') {
+    // 切换回文件模式
+    state.viewMode = 'file';
+    state.activeFile = null;
+    clearEditor();
+    clearResult();
+    await loadFileTree();
+    updateMergedButton();
+    setStatus('已切换到文件视图');
+  } else {
+    // 切换到统一视图
+    await loadMergedView();
+  }
+}
+
+async function loadMergedView() {
+  setStatus('📝 加载统一视图…');
+  try {
+    const res = await fetch(`${API}/papers/${state.activeProject}/merged`);
+    const data = await res.json();
+    
+    state.viewMode = 'merged';
+    state.mergedSegments = data.segments;
+    state.activeFile = null;
+    
+    // 显示合并的文本
+    document.getElementById('editor').value = data.merged_text;
+    document.getElementById('editor').disabled = false;
+    updateLineNumbers();
+    
+    // 文件树显示 segment 列表（替代文件树）
+    renderSegmentTree(data.segments);
+    updateMergedButton();
+    
+    setStatus(`📝 统一视图 — ${data.segments.length} 个文件合并为 ${data.merged_text.length.toLocaleString()} 字符`);
+    clearResult();
+  } catch (e) {
+    setStatus(`❌ 加载统一视图失败: ${e.message}`, true);
+  }
+}
+
+function renderSegmentTree(segments) {
+  const container = document.getElementById('tree-content');
+  if (!segments.length) {
+    container.innerHTML = '<div class="empty-state">无文件</div>';
+    return;
+  }
+  
+  // 按文件分组显示
+  const files = [...new Set(segments.map(s => s.file))];
+  container.innerHTML = `
+    <div style="font-size:11px;color:#888;margin-bottom:4px">${segments.length} 个段落 · ${files.length} 个文件</div>
+    ${segments.map((seg, i) => {
+      const icon = seg.file.endsWith('.tex') ? '📄' : '📝';
+      const size = seg.end - seg.start;
+      return `<div class="tree-item file" onclick="goToSegment(${i})" style="font-size:12px">
+        ${icon} ${seg.file.split('/').pop()}
+        <span style="color:#666;font-size:10px">(${size.toLocaleString()})</span>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function goToSegment(index) {
+  const seg = state.mergedSegments[index];
+  if (!seg) return;
+  
+  const editor = document.getElementById('editor');
+  // 根据字符偏移算出行号
+  const textBefore = editor.value.substring(0, seg.start);
+  const line = textBefore.split('\n').length;
+  
+  // 滚动到对应行
+  const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 1.6;
+  const fontSize = parseFloat(getComputedStyle(editor).fontSize) || 13;
+  const pxPerLine = lineHeight * fontSize;
+  editor.scrollTop = (line - 5) * pxPerLine;
+  
+  // 高亮对应行号
+  const endLine = (textBefore + editor.value.substring(seg.start, seg.end)).split('\n').length;
+  highlightLineRange(line, endLine);
+  selectedLineStart = line;
+  selectedLineEnd = endLine;
+  
+  document.getElementById('line-start').value = line;
+  document.getElementById('line-end').value = endLine;
+  
+  setStatus(`📍 跳转到: ${seg.file} (行 ${line}-${endLine})`);
+}
+
+function updateMergedButton() {
+  const btn = document.getElementById('toggle-merged');
+  if (state.viewMode === 'merged') {
+    btn.textContent = '📂 文件视图';
+    btn.style.color = '#e94560';
+    btn.style.borderColor = '#e94560';
+  } else {
+    btn.textContent = '📝 统一视图';
+    btn.style.color = '#a0c4ff';
+    btn.style.borderColor = '#1a4a7a';
+  }
+}
+
+async function saveMerged() {
+  if (!state.activeProject || state.viewMode !== 'merged') return;
+  
+  const content = document.getElementById('editor').value;
+  setStatus('💾 保存中…');
+  
+  try {
+    const res = await fetch(`${API}/papers/${state.activeProject}/merged`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        merged_text: content,
+        segments: state.mergedSegments,
+      }),
+    });
+    const data = await res.json();
+    
+    if (data.status === 'ok') {
+      setStatus(`💾 已保存 (${data.strategy}) — ${data.updated?.length || 0} 个文件`);
+      // 重新加载以刷新 segments
+      await loadMergedView();
+    } else {
+      setStatus(`❌ 保存失败: ${data.message || JSON.stringify(data)}`, true);
+    }
+  } catch (e) {
+    setStatus(`❌ 保存失败: ${e.message}`, true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 文件树
+// ═══════════════════════════════════════════════════════════
+async function loadFileTree() {
+  if (!state.activeProject) return;
+  try {
+    const res = await fetch(`${API}/papers/${state.activeProject}/tree`);
+    const nodes = await res.json();
+    renderFileTree(nodes);
+  } catch (e) {
+    document.getElementById('tree-content').innerHTML = `<div class="error">加载失败: ${e.message}</div>`;
+  }
+}
+
+function renderFileTree(nodes, level = 0) {
+  if (level === 0) {
+    const container = document.getElementById('tree-content');
+    if (!nodes.length) {
+      container.innerHTML = '<div class="empty-state">空项目</div>';
+      return;
+    }
+    container.innerHTML = '';
+    nodes.forEach(n => renderNode(n, container, 0));
+  }
+}
+
+function renderNode(node, parent, level) {
+  const indent = '&nbsp;&nbsp;'.repeat(level);
+  const icon = node.type === 'dir' ? '📁' : '📄';
+  const cls = node.type === 'dir' ? 'dir' : 'file';
+  const div = document.createElement('div');
+  div.className = `tree-item ${cls}` + (node.path === state.activeFile ? ' selected' : '');
+  div.innerHTML = `${indent}${icon} ${node.name}`;
+  div.onclick = () => {
+    if (node.type === 'file') {
+      state.activeFile = node.path;
+      loadFile(state.activeFile);
+      // 重新渲染树高亮
+      loadFileTree();
+    }
+  };
+  parent.appendChild(div);
+  
+  if (node.children) {
+    node.children.forEach(c => renderNode(c, parent, level + 1));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 文件读写
+// ═══════════════════════════════════════════════════════════
+async function loadFile(path) {
+  try {
+    const res = await fetch(`${API}/papers/${state.activeProject}/file?path=${encodeURIComponent(path)}`);
+    const data = await res.json();
+    state.fileContent = data.content;
+    document.getElementById('editor').value = data.content;
+    document.getElementById('editor').disabled = false;
+    _lastLineCount = 0;  // 重置行数缓存（不同文件可能刚好行数相同）
+    updateLineNumbers();
+    setStatus(`已加载: ${path}`);
+    clearResult();
+  } catch (e) {
+    setStatus(`❌ 加载文件失败: ${e.message}`, true);
+  }
+}
+
+async function saveFile() {
+  if (!state.activeProject || !state.activeFile) return;
+  const content = document.getElementById('editor').value;
+  try {
+    await fetch(`${API}/papers/${state.activeProject}/file?path=${encodeURIComponent(state.activeFile)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    state.fileContent = content;
+    setStatus('💾 已保存');
+  } catch (e) {
+    setStatus(`❌ 保存失败: ${e.message}`, true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 行号
+// ═══════════════════════════════════════════════════════════
+let _lastLineCount = 0;
+
+function updateLineNumbers() {
+  const editor = document.getElementById('editor');
+  const lines = editor.value.split('\n');
+  const count = lines.length;
+
+  // 行数不变时跳过全量重建（每次按键只在这里做一次 split，其余操作零开销）
+  if (count === _lastLineCount) return;
+  _lastLineCount = count;
+
+  const ln = document.getElementById('line-numbers');
+  const minLines = Math.max(count, 30);
+
+  let html = '';
+  for (let i = 1; i <= minLines; i++) {
+    html += `<div class="ln" data-line="${i}">${i}</div>`;
+  }
+  ln.innerHTML = html;
+  syncLineNumbers();
+}
+
+function syncLineNumbers() {
+  const editor = document.getElementById('editor');
+  const ln = document.getElementById('line-numbers');
+  ln.scrollTop = editor.scrollTop;
+}
+
+function onEditorKeydown(e) {
+  // Ctrl+S 保存
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (state.viewMode === 'merged') {
+      saveMerged();
+    } else {
+      saveFile();
+    }
+  }
+}
+
+// 行号点击选行
+let selectedLineStart = null;
+let selectedLineEnd = null;
+
+function onLineNumberClick(e) {
+  const lineEl = e.target.closest('.ln');
+  if (!lineEl) return;
+  
+  const line = parseInt(lineEl.dataset.line);
+  
+  if (!selectedLineStart || (selectedLineStart && selectedLineEnd)) {
+    // 开始新选择
+    selectedLineStart = line;
+    selectedLineEnd = line;
+  } else {
+    // 完成选择
+    selectedLineEnd = line;
+    if (selectedLineEnd < selectedLineStart) {
+      [selectedLineStart, selectedLineEnd] = [selectedLineEnd, selectedLineStart];
+    }
+  }
+  
+  document.getElementById('line-start').value = selectedLineStart;
+  document.getElementById('line-end').value = selectedLineEnd;
+  highlightLineRange(selectedLineStart, selectedLineEnd);
+}
+
+function highlightLineRange(start, end) {
+  const allLines = document.querySelectorAll('#line-numbers .ln');
+  allLines.forEach(el => {
+    const l = parseInt(el.dataset.line);
+    el.classList.toggle('highlight', l >= start && l <= end);
+  });
+}
+
+function getSelectedLineRange() {
+  const start = parseInt(document.getElementById('line-start').value);
+  const end = parseInt(document.getElementById('line-end').value);
+  if (!start || !end) return { start: 1, end: document.getElementById('editor').value.split('\n').length };
+  return { start: Math.min(start, end), end: Math.max(start, end) };
+}
+
+// ═══════════════════════════════════════════════════════════
+// B/C/D/E 请求面板（弹框）
+// ═══════════════════════════════════════════════════════════
+let reqGroup = null;     // 'B' | 'C' | 'D' | 'E'
+
+function runGenerate() { openRequestModal('B'); }
+function runPolish()   { openRequestModal('C'); }
+function runCheck()    { openRequestModal('D'); }
+function runWorkflow() { openRequestModal('E'); }
+
+function openRequestModal(group) {
+  if (!state.activeProject) { setStatus('请先选择项目', true); return; }
+  
+  reqGroup = group;
+  const titleEl = document.getElementById('req-title');
+  const bodyEl = document.getElementById('req-body');
+  
+  const titles = {
+    'B': '🔮 B 组 — 生成初稿', 'C': '✨ C 组 — 润色',
+    'D': '🔍 D 组 — 语言检查', 'E': '⚙️ E 组 — 工作流'
+  };
+  titleEl.textContent = titles[group] || '';
+  
+  if (group === 'C' || group === 'D') {
+    const sel = getSelectionInfo();
+    bodyEl.innerHTML = renderCDDialog(group, sel);
+    // 绑定 scope 切换事件、保存选择信息
+    window._reqSelection = sel;
+    setTimeout(() => {
+      const tabs = bodyEl.querySelectorAll('.scope-tab');
+      tabs.forEach(t => t.addEventListener('click', () => switchScope(group, t.dataset.scope)));
+    }, 0);
+  } else if (group === 'B') {
+    bodyEl.innerHTML = renderBDialog();
+  } else if (group === 'E') {
+    bodyEl.innerHTML = renderEDialog();
+  }
+  
+  document.getElementById('request-modal').classList.add('show');
+}
+
+function closeRequestModal() {
+  document.getElementById('request-modal').classList.remove('show');
+  reqGroup = null;
+}
+
+function getSelectionInfo() {
+  const editor = document.getElementById('editor');
+  const fullText = editor.value;
+  
+  // 优先用 textarea 原生选中（统一视图 or 自由选中）
+  if (editor.selectionStart !== editor.selectionEnd) {
+    const s = editor.selectionStart;
+    const e = editor.selectionEnd;
+    const before = fullText.substring(0, s);
+    const startLine = before.split('\n').length;
+    const endLine = before.split('\n').length + fullText.substring(s, e).split('\n').length - 1;
+    return {
+      text: fullText.substring(s, e),
+      start_line: startLine,
+      end_line: endLine,
+      sel_start: s,
+      sel_end: e,
+      file: state.activeFile || (state.viewMode === 'merged' ? 'merged' : ''),
+      section_title: '',
+      full: fullText,
+    };
+  }
+  
+  // 兜底：行号选择
+  const { start, end } = getSelectedLineRange();
+  const lines = fullText.split('\n');
+  const beforeChars = lines.slice(0, start - 1).join('\n');
+  const beforeLen = beforeChars.length + (start > 1 ? 1 : 0);
+  const selText = lines.slice(start - 1, end).join('\n');
+  return {
+    text: selText,
+    start_line: start,
+    end_line: end,
+    sel_start: beforeLen,
+    sel_end: beforeLen + selText.length,
+    file: state.activeFile || (state.viewMode === 'merged' ? 'merged' : ''),
+    section_title: '',
+    full: fullText,
+  };
+}
+
+function renderCDDialog(group, sel) {
+  const label = group === 'C' ? '润色' : '检查';
+  const selPreview = sel.text
+    ? (sel.text.length > 200 ? sel.text.substring(0, 200) + '…' : sel.text)
+    : '(未选中文本 — 将使用全文)';
+  const hasSelection = sel.text && sel.text.trim().length > 0;
+  
+  return `
+    <label>范围</label>
+    <div class="scope-tabs">
+      <div class="scope-tab ${hasSelection ? 'active' : ''}" data-scope="selection"
+           style="${!hasSelection ? 'opacity:0.5;cursor:not-allowed' : ''}">📌 选中段落</div>
+      <div class="scope-tab ${!hasSelection ? 'active' : ''}" data-scope="full">📄 全文</div>
+    </div>
+    <div class="hint">${hasSelection ? `选中了 ${sel.text.length} 个字符 · 行 ${sel.start_line}-${sel.end_line}` : '请在编辑器中选中文本，或切换到全文模式'}</div>
+    
+    <div id="sel-preview-container">
+      <label>选中内容预览</label>
+      <div class="sel-preview">${esc(selPreview)}</div>
+    </div>
+    
+    ${group === 'C' ? `
+    <label>润色风格</label>
+    <select id="req-style">
+      <option value="academic">学术化 (academic)</option>
+      <option value="concise">精简 (concise)</option>
+      <option value="fluent">流畅 (fluent)</option>
+    </select>
+    ` : `
+    <label>检查重点（可多选，不选 = 全查）</label>
+    <div class="check-group">
+      <label><input type="checkbox" value="grammar"> 语法</label>
+      <label><input type="checkbox" value="spelling"> 拼写</label>
+      <label><input type="checkbox" value="tense"> 时态</label>
+      <label><input type="checkbox" value="logic"> 逻辑</label>
+      <label><input type="checkbox" value="style"> 风格</label>
+    </div>
+    `}
+    
+    <label>补充意图 <span style="color:#666;font-weight:400">(可选)</span></label>
+    <textarea id="req-intent" rows="2" placeholder="如: 改得更学术化，减少口语表达..."></textarea>
+  `;
+}
+
+function switchScope(group, scope) {
+  // 更新 tab 样式
+  document.querySelectorAll('#req-body .scope-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.scope === scope);
+  });
+  
+  // 显示/隐藏选区预览
+  const preview = document.getElementById('sel-preview-container');
+  if (preview) preview.style.display = scope === 'selection' ? 'block' : 'none';
+  
+  // 保存到临时变量
+  window._reqScope = scope;
+}
+
+function renderBDialog() {
+  return `
+    <label>论文主题 <span style="color:#e94560">*</span></label>
+    <input type="text" id="req-topic" placeholder="如: 基于上下文感知的多智能体论文写作框架" />
+    
+    <label>大纲结构 <span style="color:#666;font-weight:400">(可选)</span></label>
+    <textarea id="req-outline" rows="4" placeholder="1. Introduction&#10;2. Related Work&#10;3. Methodology&#10;4. Experiments&#10;5. Conclusion"></textarea>
+    
+    <label>文献检索关键词 <span style="color:#666;font-weight:400">(可选，逗号分隔)</span></label>
+    <input type="text" id="req-ref-domains" placeholder="large language models, multi-agent systems" />
+    
+    <label>期望引用数量</label>
+    <input type="number" id="req-ref-count" value="15" min="1" max="50" />
+    
+    <label>格式与约束 <span style="color:#666;font-weight:400">(可选)</span></label>
+    <input type="text" id="req-constraints" placeholder="如: IEEE 格式，英文，正文不超过 8 页" />
+    
+    <label>补充意图 <span style="color:#666;font-weight:400">(可选)</span></label>
+    <textarea id="req-intent" rows="2" placeholder="如: 重点突出模块化 Agent 设计"></textarea>
+  `;
+}
+
+function renderEDialog() {
+  return `
+    <label>当前阶段 <span style="color:#e94560">*</span></label>
+    <select id="req-checkpoint">
+      <option value="draft_done">draft_done — 初稿已生成</option>
+      <option value="polish_done">polish_done — 润色已完成</option>
+      <option value="check_done">check_done — 检查已完成</option>
+    </select>
+    
+    <label>触发方式</label>
+    <select id="req-trigger">
+      <option value="manual">手动推进 (manual)</option>
+      <option value="auto">自动检测 (auto)</option>
+    </select>
+    
+    <label>补充意图 <span style="color:#666;font-weight:400">(可选)</span></label>
+    <textarea id="req-intent" rows="2" placeholder="如: B 组已生成初稿，推进到润色阶段"></textarea>
+  `;
+}
+
+async function submitRequest() {
+  if (!reqGroup || !state.activeProject) return;
+  
+  const g = reqGroup;
+  const proj = state.activeProject;
+  
+  setStatus('⏳ 处理中…');
+  document.getElementById('result-content').innerHTML = '<div class="loading">⏳ 处理中…</div>';
+  closeRequestModal();
+  
+  try {
+    if (g === 'B') {
+      await submitB(proj);
+    } else if (g === 'C') {
+      await submitC(proj);
+    } else if (g === 'D') {
+      await submitD(proj);
+    } else if (g === 'E') {
+      await submitE(proj);
+    }
+  } catch (e) {
+    document.getElementById('result-content').innerHTML = `<div class="error">❌ ${g}组失败: ${e.message}</div>`;
+    setStatus(`${g}组失败`, true);
+  }
+}
+
+let _modePickerResolve = null;
+
+function showModePicker(existingFiles) {
+  // 如果已有未关闭的，先 resolve
+  if (_modePickerResolve) {
+    _modePickerResolve('append');
+    _modePickerResolve = null;
+  }
+  
+  return new Promise((resolve) => {
+    _modePickerResolve = resolve;
+    const modal = document.getElementById('mode-picker-modal');
+    const msg = document.getElementById('mode-picker-msg');
+    msg.textContent = `项目已有 ${existingFiles.length} 个文件（${existingFiles.slice(0, 3).join(', ')}${existingFiles.length > 3 ? '...' : ''}）`;
+    
+    const appendBtn = document.getElementById('mode-btn-append');
+    const overwriteBtn = document.getElementById('mode-btn-overwrite');
+    
+    const handler = (choice) => {
+      cleanup();
+      resolve(choice);
+    };
+    
+    const cleanup = () => {
+      modal.classList.remove('show');
+      appendBtn.removeEventListener('click', onAppend);
+      overwriteBtn.removeEventListener('click', onOverwrite);
+      _modePickerResolve = null;
+    };
+    
+    const onAppend = () => handler('append');
+    const onOverwrite = () => handler('overwrite');
+    
+    appendBtn.addEventListener('click', onAppend);
+    overwriteBtn.addEventListener('click', onOverwrite);
+    
+    modal.classList.add('show');
+  });
+}
+
+function closeModePicker() {
+  if (_modePickerResolve) {
+    _modePickerResolve('append');  // ESC 关闭默认走安全模式
+    _modePickerResolve = null;
+  }
+  document.getElementById('mode-picker-modal').classList.remove('show');
+}
+
+async function submitB(proj) {
+  const topic = document.getElementById('req-topic')?.value?.trim();
+  if (!topic) { setStatus('⚠ 论文主题不能为空', true); return; }
+  
+  // 先检测项目是否已有 .tex 文件
+  setStatus('⏳ 检查项目状态…');
+  let mode = 'append';
+  try {
+    const res = await fetch(`${API}/papers/${proj}/tree`);
+    const nodes = await res.json();
+    const existingFiles = [];
+    function walk(ns) {
+      for (const n of ns) {
+        if (n.type === 'file' && (n.name.endsWith('.tex') || n.name.endsWith('.bib'))) {
+          existingFiles.push(n.name);
+        }
+        if (n.children) walk(n.children);
+      }
+    }
+    walk(nodes);
+    
+    if (existingFiles.length > 0) {
+      mode = await showModePicker(existingFiles);
+    }
+  } catch (_) {
+    // 无法获取文件树 → 默认 append
+  }
+  
+  const body = {
+    project: proj,
+    topic,
+    outline: document.getElementById('req-outline')?.value || '',
+    ref_domains: (document.getElementById('req-ref-domains')?.value || '')
+      .split(',').map(s => s.trim()).filter(Boolean),
+    ref_count: parseInt(document.getElementById('req-ref-count')?.value) || 15,
+    constraints: document.getElementById('req-constraints')?.value || '',
+    intent: document.getElementById('req-intent')?.value || '',
+    mode,
+  };
+  
+  // 1. 提交请求到后端
+  setStatus('⏳ 提交请求…');
+  try {
+    await fetch(`${API}/papers/${proj}/generate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    setStatus('❌ 提交失败', true);
+    return;
+  }
+  
+  // 2. 连接 SSE 获取进度
+  startSSE(proj, 'B', async (data) => {
+    if (data.stage === 'done') {
+      const result = data.result;
+      document.getElementById('result-content').innerHTML = 
+        `<div class="ok">✅ ${result.status}</div>\n📄 生成文件:\n${(result.files || []).map(f => '  📄 ' + f).join('\n')}`;
+      setStatus('B组完成');
+      await loadFileTree();
+      if (result.files?.length) {
+        state.activeFile = result.files[0];
+        await loadFile(state.activeFile);
+        await loadFileTree();
+      }
+    }
+  });
+}
+
+async function submitC(proj) {
+  const scope = window._reqScope || 'selection';
+  const sel = window._reqSelection || getSelectionInfo();
+  const style = document.getElementById('req-style')?.value || 'academic';
+  const intent = document.getElementById('req-intent')?.value || '';
+  
+  if (scope === 'selection' && !sel.text.trim()) {
+    setStatus('⚠ 请选中文本或切换到全文模式', true);
+    return;
+  }
+  
+  const body = {
+    paper_name: proj,
+    file_path: sel.file || state.activeFile || '',
+    start_line: sel.start_line || 1,
+    end_line: sel.end_line || 1,
+    action: 'polish',
+    scope,
+    style,
+    intent,
+    text: sel.text || '',
+  };
+  
+  // 1. 提交请求 → 返回 queued
+  setStatus('⏳ 提交润色请求…');
+  let queued;
+  try {
+    const res = await fetch(`${API}/edit/preview`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    queued = await res.json();
+  } catch (e) {
+    setStatus('❌ 提交失败', true);
+    return;
+  }
+  
+  // 2. SSE 流式获取结果
+  const original = sel.text;
+  startSSE(queued.project, queued.group, (d) => {
+    if (d.stage === 'done') {
+      const polished = d.result;
+      state.lastResult = {
+        action: 'polish',
+        original,
+        modified: polished,
+        file_path: sel.file || state.activeFile || '',
+        start_line: sel.start_line,
+        end_line: sel.end_line,
+        sel_start: sel.sel_start,
+        sel_end: sel.sel_end,
+      };
+      
+      document.getElementById('result-content').innerHTML = 
+        `<div style="margin-bottom:14px">
+           <div style="color:#f87171;font-size:11px;margin-bottom:4px">— 原文 (${original.length} 字符)</div>
+           <pre style="background:#0d1b33;padding:8px 10px;border-radius:4px;white-space:pre-wrap;font-size:12px;line-height:1.7;max-height:200px;overflow-y:auto">${esc(original)}</pre>
+         </div>
+         <div>
+           <div style="color:#34d399;font-size:11px;margin-bottom:4px">+ 润色后 (${polished.length} 字符)</div>
+           <pre style="background:#0d1b33;padding:8px 10px;border-radius:4px;white-space:pre-wrap;font-size:12px;line-height:1.7;max-height:300px;overflow-y:auto">${esc(polished)}</pre>
+         </div>`;
+      showResultActions();
+      setStatus('✨ C组完成 — 请确认修改');
+    }
+  });
+}
+
+async function submitD(proj) {
+  const scope = window._reqScope || 'selection';
+  const sel = window._reqSelection || getSelectionInfo();
+  const intent = document.getElementById('req-intent')?.value || '';
+  
+  if (scope === 'selection' && !sel.text.trim()) {
+    setStatus('⚠ 请选中文本或切换到全文模式', true);
+    return;
+  }
+  
+  // 收集选中的 checkbox
+  const checks = document.querySelectorAll('#req-body .check-group input[type="checkbox"]:checked');
+  const focus = Array.from(checks).map(c => c.value);
+  
+  const body = {
+    paper_name: proj,
+    file_path: sel.file || state.activeFile || '',
+    start_line: sel.start_line || 1,
+    end_line: sel.end_line || 1,
+    action: 'lang_check',
+    scope,
+    focus,
+    intent,
+    text: sel.text || '',
+  };
+  
+  // 1. 提交请求 → 返回 queued
+  setStatus('⏳ 提交检查请求…');
+  let queued;
+  try {
+    const res = await fetch(`${API}/edit/preview`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    queued = await res.json();
+  } catch (e) {
+    setStatus('❌ 提交失败', true);
+    return;
+  }
+  
+  // 2. SSE 流式获取结果
+  startSSE(queued.project, queued.group, (d) => {
+    if (d.stage === 'done') {
+      const issues = d.result;
+      const html = issues && issues.length
+        ? `<div style="color:#f59e0b;margin-bottom:8px">🔍 发现 ${issues.length} 个问题</div>` +
+          issues.map((iss, i) =>
+            `<div style="margin-bottom:8px;padding:8px 10px;background:#0d1b33;border-radius:4px;font-size:12px;line-height:1.6">
+               <span style="color:#f59e0b">#${i + 1} L${iss.line || '?'}: ${esc(iss.message || '')}</span>
+               ${iss.fix ? `<div style="color:#34d399;margin-top:4px">→ 建议: ${esc(iss.fix)}</div>` : ''}
+             </div>`
+          ).join('')
+        : '<div class="ok">✅ 未发现问题</div>';
+      
+      document.getElementById('result-content').innerHTML = 
+        `<div style="color:#f59e0b;margin-bottom:8px;font-weight:600">🔍 D组检查结果</div>${html}`;
+      hideResultActions();
+      setStatus('🔍 D组完成');
+    }
+  });
+}
+
+async function submitE(proj) {
+  const checkpoint = document.getElementById('req-checkpoint')?.value || '';
+  const trigger = document.getElementById('req-trigger')?.value || 'manual';
+  const intent = document.getElementById('req-intent')?.value || '';
+  
+  const res = await fetch(`${API}/request/E`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project: proj, checkpoint, trigger, intent }),
+  });
+  const data = await res.json();
+  
+  document.getElementById('result-content').innerHTML = 
+    `<div class="ok">✅ ${data.message || 'E 组请求已写入'}</div>`;
+  setStatus('E组请求已写入');
+}
+
+// ── 键盘 ESC 关闭请求面板 ──
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('mode-picker-modal')?.classList.contains('show')) {
+      closeModePicker();
+    } else if (document.getElementById('request-modal').classList.contains('show')) {
+      closeRequestModal();
+    }
+  }
+});
+
+
+
+// ═══════════════════════════════════════════════════════════
+// SSE 进度（可复用于 B/C/D/E）
+// ═══════════════════════════════════════════════════════════
+
+function startSSE(project, group, onDone) {
+  abortTask(); // 先断开旧连接
+  
+  const wrap = document.getElementById('progress-wrap');
+  const bar = document.getElementById('progress-bar-inner');
+  const log = document.getElementById('progress-log');
+  const btn = document.getElementById('btn-abort');
+  const content = document.getElementById('result-content');
+  
+  wrap.classList.add('active');
+  bar.className = '';
+  bar.style.width = '0%';
+  log.innerHTML = '';
+  btn.style.display = 'inline';
+  content.innerHTML = '';
+  
+  const icons = { init: '📂', searching: '🔍', generating: '✍️', writing: '💾', compiling: '📄', done: '✅', error: '❌' };
+  
+  const es = new EventSource(`${API}/tasks/${project}/${group}/stream`);
+  state.sseSource = es;
+  
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    bar.style.width = d.percent + '%';
+    
+    if (d.stage === 'done') {
+      bar.classList.add('done');
+      log.innerHTML += `<div class="progress-log-item done">✅ ${d.message}</div>`;
+      finishSSE();
+      if (onDone) onDone(d);
+    } else if (d.stage === 'error') {
+      bar.classList.add('error');
+      log.innerHTML += `<div class="progress-log-item" style="color:#f87171">❌ ${d.message}</div>`;
+      finishSSE();
+    } else {
+      const icon = icons[d.stage] || '⏳';
+      log.innerHTML += `<div class="progress-log-item active">${icon} ${d.message}</div>`;
+      log.scrollTop = log.scrollHeight;
+      setStatus(`⏳ ${group}组: ${d.message} (${d.percent}%)`);
+    }
+  };
+  
+  es.onerror = () => {
+    if (!state.sseSource || state.sseSource !== es) return;  // 已被 abort，忽略
+    log.innerHTML += `<div class="progress-log-item" style="color:#f87171">❌ 连接断开</div>`;
+    finishSSE();
+  };
+}
+
+function finishSSE() {
+  if (state.sseSource) { state.sseSource.close(); state.sseSource = null; }
+  document.getElementById('btn-abort').style.display = 'none';
+  document.getElementById('progress-wrap').classList.remove('active');
+}
+
+function abortTask() {
+  if (state.sseSource) { state.sseSource.close(); state.sseSource = null; }
+  document.getElementById('btn-abort').style.display = 'none';
+  document.getElementById('progress-wrap').classList.remove('active');
+  hideResultActions();
+  setStatus('已中止');
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 结果面板: Diff 渲染 + 应用/丢弃
+// ═══════════════════════════════════════════════════════════
+function renderDiff(original, modified, diffText) {
+  if (!diffText) return `<div class="ok">无变更</div>`;
+  
+  // 将 unified diff 上色
+  const lines = diffText.split('\n');
+  const colored = lines.map(line => {
+    if (line.startsWith('+++') || line.startsWith('---')) return `<span class="diff-header">${esc(line)}</span>`;
+    if (line.startsWith('@@')) return `<span class="diff-header">${esc(line)}</span>`;
+    if (line.startsWith('+')) return `<span class="diff-add">${esc(line)}</span>`;
+    if (line.startsWith('-')) return `<span class="diff-remove">${esc(line)}</span>`;
+    return esc(line);
+  }).join('\n');
+  
+  return `<div style="font-size:12px">${colored}</div>`;
+}
+
+function showResultActions() {
+  document.getElementById('result-actions').style.display = 'flex';
+}
+
+function hideResultActions() {
+  document.getElementById('result-actions').style.display = 'none';
+}
+
+async function applyEdit(accepted) {
+  if (!state.lastResult) return;
+  if (!state.activeProject) { setStatus('❌ 未选择项目', true); return; }
+  
+  hideResultActions();
+  
+  if (!accepted) {
+    document.getElementById('result-content').innerHTML = '<div class="empty-state">执行 B/C/D 操作后结果显示在这里</div>';
+    setStatus('修改已丢弃');
+    state.lastResult = null;
+    return;
+  }
+  
+  const paper = state.activeProject;
+  const res = state.lastResult;
+  
+  // 统一视图：用字符偏移定位原文，替换后 saveMerged 写回各文件
+  if (state.viewMode === 'merged') {
+    try {
+      const editor = document.getElementById('editor');
+      const content = editor.value;
+      
+      // 用字符偏移定位（避免 indexOf 误匹配重复文本）
+      let idx = res.sel_start;
+      if (idx === undefined || idx === null) {
+        idx = content.indexOf(res.original);
+      }
+      if (idx === -1 || idx > content.length) {
+        setStatus('⚠ 原文已变化，无法定位替换位置', true);
+        return;
+      }
+      
+      editor.value = content.substring(0, idx) + res.modified + content.substring(idx + res.original.length);
+      setStatus('💾 写入统一视图…');
+      await saveMerged();
+      setStatus('✅ 修改已应用');
+    } catch (e) {
+      setStatus(`❌ 操作失败: ${e.message}`, true);
+    }
+    state.lastResult = null;
+    return;
+  }
+  
+  // 文件视图：调 /api/edit/apply 写回单个文件
+  const fpath = res.file_path || state.activeFile || '';
+  if (!fpath) { setStatus('❌ 未确定目标文件', true); return; }
+  
+  const body = {
+    paper_name: paper,
+    file_path: fpath,
+    action: res.action,
+    accepted,
+    modified: res.modified || '',
+    start_line: res.start_line || 0,
+    end_line: res.end_line || 0,
+  };
+  
+  try {
+    const resp = await fetch(`${API}/edit/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`${resp.status} ${errText}`);
+    }
+    
+    const data = await resp.json();
+    if (data.status === 'applied') {
+      setStatus('✅ 修改已应用');
+      await loadFile(fpath);
+    } else {
+      setStatus('修改已丢弃');
+    }
+    state.lastResult = null;
+  } catch (e) {
+    console.error('applyEdit error:', e, 'body:', body);
+    setStatus(`❌ 操作失败: ${e.message}`, true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 编译 PDF
+// ═══════════════════════════════════════════════════════════
+async function runCompile() {
+  if (!state.activeProject) { setStatus('请先选择项目', true); return; }
+  
+  setStatus('📄 编译中…');
+  document.getElementById('result-content').innerHTML = '<div class="loading">⏳ 编译中…</div>';
+  
+  try {
+    const res = await fetch(`${API}/compile/${state.activeProject}`, { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.status === 'ok') {
+      document.getElementById('result-content').innerHTML = 
+        `<div class="ok">✅ 编译成功</div>\n📄 PDF: <a href="${API}/compile/${state.activeProject}/pdf" target="_blank" style="color:#60a5fa">打开 PDF</a>`;
+      setStatus('编译成功 ✅');
+    } else {
+      document.getElementById('result-content').innerHTML = 
+        `<div class="error">❌ 编译失败</div>\n<pre style="font-size:11px;color:#888;white-space:pre-wrap">${esc(data.log || '')}</pre>`;
+      setStatus('编译失败', true);
+    }
+  } catch (e) {
+    document.getElementById('result-content').innerHTML = `<div class="error">❌ 编译失败: ${e.message}</div>`;
+    setStatus('编译失败', true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 工具
+// ═══════════════════════════════════════════════════════════
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.style.color = isError ? '#f87171' : '#666';
+}
+
+function clearEditor() {
+  document.getElementById('editor').value = '';
+  document.getElementById('editor').disabled = true;
+  document.getElementById('line-numbers').innerHTML = '';
+  document.getElementById('line-start').value = '';
+  document.getElementById('line-end').value = '';
+  selectedLineStart = null;
+  selectedLineEnd = null;
+}
+
+function clearResult() {
+  document.getElementById('result-content').innerHTML = '<div class="empty-state">执行 B/C/D 操作后结果显示在这里</div>';
+  hideResultActions();
+  state.lastResult = null;
+}
+
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════
+// Git 历史
+// ═══════════════════════════════════════════════════════════
+let historyExpanded = false;
+let historyData = [];
+
+async function refreshHistoryCount() {
+  if (!state.activeProject) {
+    document.getElementById('history-title').textContent = '📜 历史';
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/git/${state.activeProject}/log?max_count=1`);
+    const data = await res.json();
+    const count = data.length > 0 ? ` (${data.length})` : '';
+    document.getElementById('history-title').textContent = `📜 历史${count}`;
+  } catch (_) {
+    document.getElementById('history-title').textContent = '📜 历史';
+  }
+}
+
+async function toggleHistory() {
+  if (!state.activeProject) { setStatus('请先选择项目', true); return; }
+  
+  historyExpanded = !historyExpanded;
+  const header = document.getElementById('history-header');
+  const list = document.getElementById('history-list');
+  
+  if (historyExpanded) {
+    header.classList.add('expanded');
+    list.classList.add('show');
+    await loadHistory();
+  } else {
+    header.classList.remove('expanded');
+    list.classList.remove('show');
+  }
+}
+
+async function loadHistory() {
+  if (!state.activeProject) return;
+  
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="loading" style="font-size:12px;padding:4px 8px">加载中…</div>';
+  
+  try {
+    const res = await fetch(`${API}/git/${state.activeProject}/log?max_count=20`);
+    historyData = await res.json();
+    
+    if (!historyData.length) {
+      list.innerHTML = '<div style="color:#555;font-size:12px;padding:4px 8px">暂无提交记录</div>';
+      document.getElementById('history-title').textContent = '📜 历史';
+      return;
+    }
+    
+    document.getElementById('history-title').textContent = `📜 历史 (${historyData.length})`;
+    
+    list.innerHTML = historyData.map((c, i) => {
+      const date = c.date ? c.date.substring(5, 16).replace('T', ' ') : '';
+      const msg = esc(c.message || '').substring(0, 40);
+      const hashShort = (c.hash || '').substring(0, 7);
+      return `<div class="hist-item" onclick="showDiff('${c.hash}', ${i})" title="${esc(c.message || '')}">
+        <span class="hist-date">${date}</span>
+        <span class="hist-msg">${msg}</span>
+        <span class="hist-hash">${hashShort}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="color:#f87171;font-size:12px;padding:4px 8px">加载失败: ${e.message}</div>`;
+  }
+}
+
+async function showDiff(hash, index) {
+  // 高亮选中项
+  document.querySelectorAll('.hist-item').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  
+  const content = document.getElementById('result-content');
+  content.innerHTML = '<div class="loading">加载 diff…</div>';
+  setStatus('📜 加载历史 diff…');
+  
+  // 隐藏接受/丢弃按钮，显示回退按钮
+  hideResultActions();
+  
+  try {
+    const res = await fetch(`${API}/git/${state.activeProject}/diff/${hash}`);
+    const data = await res.json();
+    
+    content.innerHTML = `
+      <div style="font-size:11px;color:#888;margin-bottom:8px">
+        📜 <code style="font-size:11px">${esc(hash.substring(0, 8))}</code>
+      </div>
+      <pre style="font-size:11px;color:#bcd;white-space:pre-wrap;max-height:400px;overflow-y:auto;background:#0d1b33;padding:10px;border-radius:4px">${esc(data.diff || '')}</pre>
+      <div style="margin-top:12px">
+        <button onclick="revertCommit('${hash}')" style="background:#e94560;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">
+          ⚠️ 回退到此版本
+        </button>
+      </div>`;
+    showResultActions();
+    setStatus('📜 已加载 diff');
+  } catch (e) {
+    content.innerHTML = `<div class="error">加载 diff 失败: ${e.message}</div>`;
+    setStatus('加载 diff 失败', true);
+  }
+}
+
+async function revertCommit(hash) {
+  if (!confirm(`确认回退到版本 ${hash.substring(0, 8)}？\n\n此操作不可撤销，所有未提交的修改将丢失。`)) return;
+  
+  setStatus('⚠️ 回退中…');
+  try {
+    const res = await fetch(`${API}/git/${state.activeProject}/revert/${hash}`, { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.status === 'ok') {
+      document.getElementById('result-content').innerHTML = 
+        `<div class="ok">✅ 已回退到 ${esc(hash.substring(0, 8))}</div>`;
+      setStatus('回退成功 ✅');
+      // 刷新文件树和编辑器
+      await loadFileTree();
+      if (state.activeFile) await loadFile(state.activeFile);
+      await loadHistory();
+    } else {
+      document.getElementById('result-content').innerHTML = 
+        `<div class="error">❌ 回退失败: ${esc(data.message || '')}</div>`;
+      setStatus('回退失败', true);
+    }
+  } catch (e) {
+    document.getElementById('result-content').innerHTML = 
+      `<div class="error">❌ 回退失败: ${e.message}</div>`;
+    setStatus('回退失败', true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 公式识别
+// ═══════════════════════════════════════════════════════════
+function openFormulaModal() {
+  // 重置状态
+  document.getElementById('formula-file-input').value = '';
+  document.getElementById('formula-result').style.display = 'none';
+  document.getElementById('formula-loading').style.display = 'none';
+  document.getElementById('formula-error').style.display = 'none';
+  document.getElementById('formula-modal').classList.add('show');
+}
+
+function closeFormulaModal() {
+  document.getElementById('formula-modal').classList.remove('show');
+}
+
+function onFormulaFileSelected() {
+  const file = document.getElementById('formula-file-input').files[0];
+  if (!file) return;
+  
+  document.getElementById('formula-loading').style.display = 'block';
+  document.getElementById('formula-result').style.display = 'none';
+  document.getElementById('formula-error').style.display = 'none';
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  fetch(`${API}/formula/recognize`, { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('formula-loading').style.display = 'none';
+      
+      if (data.latex) {
+        const latexBox = document.getElementById('formula-latex');
+        latexBox.textContent = data.latex;
+        document.getElementById('formula-result').style.display = 'block';
+        
+        // PDF 预览
+        const pdfContainer = document.getElementById('formula-pdf-container');
+        if (data.pdf_url) {
+          pdfContainer.innerHTML = `<iframe src="${API}${data.pdf_url}#toolbar=0&navpanes=0" style="width:100%;height:200px;border:none;border-radius:4px"></iframe>`;
+        } else {
+          pdfContainer.innerHTML = '<div style="color:#888;padding:20px;text-align:center">编译失败，请检查 LaTeX 语法</div>';
+        }
+        
+        // 编译情况提示
+        if (data.message) {
+          document.getElementById('formula-error').textContent = data.message;
+          document.getElementById('formula-error').style.display = 'block';
+        }
+        
+        setStatus('公式识别完成');
+      } else {
+        document.getElementById('formula-error').textContent = data.message || '识别失败';
+        document.getElementById('formula-error').style.display = 'block';
+        setStatus('公式识别失败', true);
+      }
+    })
+    .catch(e => {
+      document.getElementById('formula-loading').style.display = 'none';
+      document.getElementById('formula-error').textContent = e.message;
+      document.getElementById('formula-error').style.display = 'block';
+      setStatus('识别请求失败', true);
+    });
+}
+
+function copyFormula() {
+  const latex = document.getElementById('formula-latex').textContent;
+  navigator.clipboard.writeText(latex).then(() => {
+    const btn = document.getElementById('formula-copy-btn');
+    btn.textContent = '✅ 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 复制'; btn.classList.remove('copied'); }, 2000);
+    setStatus('📋 LaTeX 代码已复制到剪贴板');
+  });
+}
+
+// 点击模态背景关闭
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'formula-modal') closeFormulaModal();
+});
+// ESC 关闭
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeFormulaModal();
+});
+</script>
+
+<!-- ── 公式识别模态 ── -->
+<div id="formula-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🧮 手写公式识别</h3>
+      <button class="modal-close" onclick="closeFormulaModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="file" id="formula-file-input" accept="image/png,image/jpeg,image/webp" onchange="onFormulaFileSelected()" />
+      <button id="formula-file-btn" onclick="document.getElementById('formula-file-input').click()">
+        📁 选择手写公式/白板照片
+      </button>
+      
+      <div id="formula-loading">⏳ 识别中…</div>
+      <div id="formula-error"></div>
+      
+      <div id="formula-result" style="margin-top:16px">
+        <div style="font-size:12px;color:#888;margin-bottom:6px">LaTeX 代码（点击复制后粘贴到编辑器）</div>
+        <div class="latex-box">
+          <button class="copy-btn" id="formula-copy-btn" onclick="copyFormula()">📋 复制</button>
+          <div id="formula-latex"></div>
+        </div>
+        <div style="font-size:12px;color:#888;margin-top:12px;margin-bottom:4px">PDF 预览（确认公式无误后复制使用）</div>
+        <div id="formula-pdf-container" class="pdf-preview">
+          <div style="color:#888;padding:20px;text-align:center">等待识别结果…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── B/C/D/E 请求面板模态 ── -->
+<div id="request-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="req-title"></h3>
+      <button class="modal-close" onclick="closeRequestModal()">✕</button>
+    </div>
+    <div class="modal-body" id="req-body"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeRequestModal()">取消</button>
+      <button class="btn-submit" id="req-submit-btn" onclick="submitRequest()">提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── B 组模式选择模态 ── -->
+<div id="mode-picker-modal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3 id="mode-picker-title">⚙️ 选择生成模式</h3>
+      <button class="modal-close" onclick="closeModePicker()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="mode-picker-msg" style="color:#e0e0e0;margin-bottom:16px"></p>
+      <div style="display:flex;gap:12px">
+        <button class="btn-primary" id="mode-btn-append" style="flex:1;background:#1a3a4a">📎 追加 (append)<br><small style="color:#888">保留已有文件，追加新内容</small></button>
+        <button class="btn-danger" id="mode-btn-overwrite" style="flex:1;background:#5c1a1a">🗑️ 覆盖 (overwrite)<br><small style="color:#a88">清空旧文件后重建</small></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

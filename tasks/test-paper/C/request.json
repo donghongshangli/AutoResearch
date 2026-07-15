@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "task": "polish",
+    "project": "test-paper",
+    "paper_dir": "C:\\Users\\25484\\.openclaw\\workspace\\文件\\Prism\\AutoResearch\\tasks\\test-paper",
+    "created_at": "2026-07-14T23:31:55Z",
+    "scope": "full"
+  },
+  "selection": null,
+  "context": "# 论文结构\n- Conclusion (0 字符) [id=conclusion]\n- Experiments (0 字符) [id=experiments]\n- Introduction (0 字符) [id=introduction]\n- Methodology (0 字符) [id=methodology]\n- Related Work (0 字符) [id=related-work]\n\n# 论文论证结构 (argument.md)\n\n# Paper Argument Structure\n\n## Core Thesis\nAcademic writing can be decomposed into modular sub-tasks handled by context-aware agents, enabling better coherence and quality than single-pass generation.\n\n## Argument Flow\n\n### 1. Problem Statement (Introduction)\n- Academic writing is hard: multiple cognitive concerns simultaneously\n- LLMs help but have context limitations\n- Single-pass generation doesn't match iterative writing process\n- → We need structured, context-aware decomposition\n\n### 2. Gap Identification (Related Work)\n- Existing LLM writing tools operate at sentence/paragraph level\n- RAG addresses facts but not document structure\n- Multi-agent systems lack shared structured document grounding\n- → No prior work combines document parsing + context engine + modular agents\n\n### 3. Solution (Methodology)\n- Document graph: parse → sections, labels, cites, refs\n- Context engine: locate, expand, outline → L1-L5 layers\n- Agent modules: uniform run() interface, black-box internals\n- → Architecture separates concerns: parsing ≠ context ≠ generation\n\n### 4. Evidence (Experiments)\n- Case study: complete paper pipeline\n- Metrics: structural coherence, citation accuracy, style consistency\n- Baseline: single-pass LLM generation\n- → Context-aware approach improves all metrics\n\n### 5. Contribution Summary\n- Context engine architecture (separation of concerns)\n- Modular agent pipeline (uniform interface)\n- Empirical validation (case study results)\n\n### 6. Limitations & Future\n- LaTeX-only input format\n- Single case study with GPT-4 only\n- Basic workflow orchestration\n- Extend to legal, technical, curriculum domains",
+  "style": "academic",
+  "intent": ""
+}

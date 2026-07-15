@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# pytest
+.pytest_cache/
+
+# Environment
+.env
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+build/
+
+# PDF cache (downloaded papers)
+cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test repositories
+tasks/test-git-proj/
+
+# Temp files
+*.tmp
+~$*

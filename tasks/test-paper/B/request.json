@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "task": "generate",
+    "project": "test-paper",
+    "paper_dir": "C:\\Users\\25484\\.openclaw\\workspace\\文件\\Prism\\AutoResearch\\tasks\\test-paper",
+    "created_at": "2026-07-14T23:31:21Z"
+  },
+  "topic": "AI",
+  "outline": "",
+  "ref_domains": [],
+  "ref_count": 15,
+  "constraints": "",
+  "intent": "",
+  "mode": "overwrite"
+}

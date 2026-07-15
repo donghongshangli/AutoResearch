@@ -1,0 +1,138 @@
+﻿============================================================
+SECTION TREE
+============================================================
+引言
+  id=sec:intro, content=145chars, 2cites, 0refs
+  问题定义
+    id=sec:problem, content=60chars, 0cites, 1refs
+方法
+  id=sec:method, content=193chars, 1cites, 1refs
+  解析层
+    id=sec:parse, content=32chars, 0cites, 0refs
+  文档图层
+    id=sec:docgraph, content=59chars, 0cites, 0refs
+实验
+  id=sec:experiment, content=63chars, 1cites, 1refs
+结论
+  id=sec:conclusion, content=37chars, 0cites, 1refs
+
+============================================================
+BIB MAP (cite key -> paper metadata)
+============================================================
+
+  [prism2025] Zhang et al. (2025)
+  Title: PRISM: Efficient Long-Range Reasoning in Language Models with Structured Schema
+  Authors: ['Zhang, Wei', 'Li, Ming', 'Chen, Hao', 'Wang, Lei']
+  Journal: Proceedings of EMNLP 2025
+  Summary: Zhang et al. (2025) | "PRISM: Efficient Long-Range Reasoning in Language Models with Structured Schema" | Proceedings of EMNLP 2025 | [摘要] We present PRISM, a structured schema approach that replaces ...
+
+  [he2016] He et al. (2016)
+  Title: Deep Residual Learning for Image Recognition
+  Authors: ['He, Kaiming', 'Zhang, Xiangyu', 'Ren, Shaoqing', 'Sun, Jian']
+  Journal: CVPR
+  Summary: He et al. (2016) | "Deep Residual Learning for Image Recognition" | CVPR | [摘要] We present a residual learning framework to ease the training of very deep networks. Through extensive experiments on Im...
+
+============================================================
+REF MAP (label: who points to it, what it points to)
+============================================================
+
+  [sec:conclusion]
+    Target Section: 结论
+    Referenced by (0): []
+
+  [sec:docgraph]
+    Target Section: 文档图层
+    Referenced by (0): []
+
+  [sec:experiment]
+    Target Section: 实验
+    Referenced by (1): ['结论']
+
+  [sec:intro]
+    Target Section: 引言
+    Referenced by (0): []
+
+  [sec:method]
+    Target Section: 方法
+    Referenced by (2): ['问题定义', '实验']
+
+  [sec:parse]
+    Target Section: 解析层
+    Referenced by (0): []
+
+  [sec:problem]
+    Target Section: 问题定义
+    Referenced by (0): []
+
+============================================================
+NEIGHBORS (per section)
+============================================================
+
+  [引言]
+    Path: 引言
+    Parent: ROOT
+    Prev sibling: -
+    Next sibling: 方法
+    All siblings: ['方法', '实验', '结论']
+
+  [问题定义]
+    Path: 引言 > 问题定义
+    Parent: 引言
+    Prev sibling: -
+    Next sibling: -
+    All siblings: []
+
+  [方法]
+    Path: 方法
+    Parent: ROOT
+    Prev sibling: 引言
+    Next sibling: 实验
+    All siblings: ['引言', '实验', '结论']
+
+  [解析层]
+    Path: 方法 > 解析层
+    Parent: 方法
+    Prev sibling: -
+    Next sibling: 文档图层
+    All siblings: ['文档图层']
+
+  [文档图层]
+    Path: 方法 > 文档图层
+    Parent: 方法
+    Prev sibling: 解析层
+    Next sibling: -
+    All siblings: ['解析层']
+
+  [实验]
+    Path: 实验
+    Parent: ROOT
+    Prev sibling: 方法
+    Next sibling: 结论
+    All siblings: ['引言', '方法', '结论']
+
+  [结论]
+    Path: 结论
+    Parent: ROOT
+    Prev sibling: 实验
+    Next sibling: -
+    All siblings: ['引言', '方法', '实验']
+
+============================================================
+CITES PER SECTION
+============================================================
+  引言: ['Zhang et al. (2025)', 'He et al. (2016)']
+  问题定义: (none)
+  方法: ['Zhang et al. (2025)']
+  解析层: (none)
+  文档图层: (none)
+  实验: ['Zhang et al. (2025)']
+  结论: (none)
+
+============================================================
+HEALTH CHECK
+============================================================
+  Broken refs (dangling): ['fig:arch']
+  Uncached cite keys:     []
+  Cite coverage:          100%
+  Total sections:         7
+  Total bib entries:      2

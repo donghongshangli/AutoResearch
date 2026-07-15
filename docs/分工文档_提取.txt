@@ -1,0 +1,70 @@
+🎯 项目定位
+将 Prism（AI原生协作平台）、ARS（多智能体研究流水线）、PaperOrchestrator（多智能体写作框架）、Paperpal（学术润色与投稿检查）、Writefull（学术语言工具）、nature-skills（Nature风格工作流） 六类资源整合为一套完整的科技论文写作助手。
+👥 6人分工方案
+同学A：核心平台集成组（Prism方向）
+负责资源：OpenAI Prism
+核心职责：
+研究Prism的云端LaTeX工作区架构与GPT-5.2集成方式
+实现手写公式/白板照片→LaTeX自动转换功能
+构建实时协作编辑与文献检索（arXiv）功能
+对接Prism的语音编辑功能接口
+交付物：AI原生写作工作区核心框架、LaTeX实时渲染引擎
+同学B：智能体流水线组（ARS + PaperOrchestrator方向）
+负责资源：Academic Research Skills (ARS)+ PaperOrchestrator
+核心职责：
+研究ARS的4个核心Skill架构（研究→写作→审稿→定稿）
+实现13个Agent的Deep Research团队（文献调研、方法论设计、引用核验）
+实现12个Agent的Academic Paper写作团队（大纲→草稿→图表→格式转换）
+集成PaperOrchestrator的7阶段流水线（大纲生成→逐节写作→长度控制→一致性润色→BibTeX→LaTeX转换→期刊模板渲染）
+交付物：多智能体写作流水线引擎、Agent协作框架
+同学C：语言润色与投稿检查组（Paperpal方向）
+负责资源：Paperpal
+核心职责：
+实现智能助写功能（开题构思、提纲生成、投稿信撰写）
+实现语言润色引擎（语法优化、句式逻辑衔接、学术风格转换）
+集成Turnitin查重接口
+实现30+项投稿前合规性检查（结构、参考文献、图表引用等）
+支持Word/Overleaf/Google Docs多端插件
+交付物：学术润色引擎、投稿检查模块、多端插件
+同学D：学术语言工具组（Writefull方向）
+负责资源：Writefull
+核心职责：
+实现专业语言反馈（语法、标点、用字、句子结构优化）
+开发Academizer功能（口语→学术用语转换）
+实现标题生成、摘要生成、段落改写功能
+开发引用遗漏检测工具（Writefull Cite）
+集成Word与Overleaf插件
+交付物：学术语言工具箱、引用检测模块
+同学E：流程编排与标准化组（nature-skills方向）
+负责资源：nature-skills
+核心职责：
+实现5大核心Skill：科研绘图(nature-figure)、学术润色(nature-polishing)、引用检索(nature-citation)、数据声明(nature-data)、论文精读(nature-reader)
+实现12步checklist式工作流（断句→章节识别→时态审计→词汇升级→引用审计→格式规范→校对→输出等）
+将一次性Prompt转化为可复用Workflow
+建立科研AI使用规范与质量控制标准
+交付物：标准化工作流引擎、Skill管理框架
+同学F：前端与集成组（全平台整合）
+负责资源：所有工具的前端集成与用户体验
+核心职责：
+设计统一的Web端工作区（整合LaTeX编辑、AI对话、文献管理等）
+开发Word/Overleaf/Google Docs插件
+实现多端数据同步与实时协作功能
+对接各组后端服务，构建统一的API网关
+负责整体UI/UX设计与用户体验优化
+交付物：统一前端平台、插件套件、API网关
+📋 协作
+协作事项
+涉及同学
+建议
+引用管理
+A+B+E
+A提供文献检索接口，B实现引用核验（Semantic Scholar API），E实现按claim检索引用
+LaTeX渲染
+A+C+F
+A提供核心引擎，C做投稿格式检查，F做前端展示
+润色流水线
+C+D+E
+C做基础润色，D做学术风格转换，E做checklist式质量检查
+多智能体协作
+B+F
+B实现Agent框架，F提供可视化管理界面
